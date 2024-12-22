@@ -4,6 +4,10 @@
 
 This project aims to generate SMILES (Simplified Molecular Input Line Entry System) representations from mass spectrometry (MS) data using machine learning techniques. I primarily contributed to the autoencoder architecture.
 
+I primarily contributed to the autoencoder architecture in `SMILES_AutoEncoder.ipynb`.
+
+The full project report with figures can be found in `SMILES_MS_Project_Report.pdf`.
+
 ## Background
 
 - GC-MS is typically used to identify the components of complex mixtures by comparing their mass spectra to those in existing libraries.
