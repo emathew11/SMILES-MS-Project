@@ -1,52 +1,165 @@
-# msse-Chem277B-Project
-## Project Checkpoint CHEM277B
-### Generating Novel Compounds from Mass Spectrometry Data
-#### Team 3: Casey Tomlin, Dulce Torres, Esther Mathew, Jesse Maki, Marie Anand
+# Generating Novel Compounds from Mass Spectrometry Data
 
-##### Objective
+## Objective
 
-This project aims to develop a machine learning model capable of generating a range of possible compounds directly from Mass Spectrometry data.
+This project aims to generate SMILES (Simplified Molecular Input Line Entry System) representations from mass spectrometry (MS) data using machine learning techniques. I primarily contributed to the autoencoder architecture.
 
-##### Background
+## Background
 
-GC-MS is typically used to identify the components of complex mixtures by comparing their mass spectra to those in existing libraries. However, this method is limited by the availability of known spectra. We can expand this capability by developing a model to predict molecular structures from their MS profiles, potentially identifying novel compounds or those not yet cataloged.
+- GC-MS is typically used to identify the components of complex mixtures by comparing their mass spectra to those in existing libraries.
+  
+- We can expand this capability by developing a model to predict molecular structures from their MS profiles, potentially identifying novel compounds.
 
-##### Data
+- **Challenges:** Sourcing suitable datasets. Factoring in the non-uniqueness of MS spectra for different molecules.
 
-Our project will use the data available in the Massbank of North America (MoNA), which includes pairs of SMILES strings and their associated mass spectrometry data (M/Z: Intensity) pairs.
+## Data
+
+Our project will use the data available in the Massbank of North America (MoNA), which includes pairs of SMILES strings and their associated mass spectrometry data (M/Z: Intensity) pairs, and MoleculeNet. Resulted in ~18,000 GC-MS spectra with matching SMILES, and ~700,000 unique SMILES.
 
 https://mona.fiehnlab.ucdavis.edu/
 
-##### First Phase: EDA and Data Cleaning
+**DeepSMILES:** Converting SMILES for tokenization in generative machine learning models. Eliminates unmatched symbols and more frequently generates valid chemical structures.
 
-It is difficult to train our model on MS to SMILES data if there is ambiguous stereochemistry. To avoid this issue, we standardized our SMILES data by using RDKit packages to sanitize, strip isomeric ambiguities, and to canonicalize the SMILES strings. This process is documented in the canonize.ipynb notebook. 
-SMILES above 75 in character length and those with characters not present in our target dataset were filtered out. Spectrum length and spectrum m/z frequency distributions are visualized, and these will be used to make decisions about spectrum features for the spectrum to smiles model. 
+## AutoEncoder
 
-##### Second Phase: SMILES randomized to canonical strings autoencoder model
-
-Refer to SMILES_AutoEncoder.ipynb file for progress.
-
-- Implement SMILES bidirectional GRU autoencoder. This model will learn to compress SMILES randomized strings and decode them into canonized SMILES strings. This model is used to pre-train the decoder component for the MS to SMILES model since there is a limited amount of available spectra data for training the spectra to SMILES model end-to-end. By using the SMILES molecule datasets, the decoder learns many chemical structures and SMILES string encodings.The spectra encoder will be trained on a smaller labeled dataset of molecules and mass spectra. This approach allows the decoder to learn latent space representation of molecules which will be useful to reconstruct SMILES strings for spectra to molecular structure translation. This ensures that the model can accurately reconstruct molecular structure information, especially with novel molecules not present in databases and our training dataset.
-
-- Bidirectional GRUs are used because of the sequential nature of the SMILES string where we would want to capture contextual information from both directions (forward and reverse) when encoding and decoding strings. Each character has significance in relation to preceding and succeeding elements. GRUs, which is a type of RNN, processes sequential data by capturing dependencies between elements in sequences.
-
-- We have implemented the bidirectional GRU autoencoder using PyTorch with a small sample of five randomly selected SMILES randomized strings. We used cross entropy loss between the model output and target canonized SMILES strings for loss optimization in training. Hyperparameters included sequence length of 77 (length of SMILES string), input size of 64 (unique characters in SMILES string), embedding dimensions of 10 (number of input dimensions after embedding and before encoder), hidden dimensions of 10 (dimensions of hidden layer), number of layers of 3 (layers in encoder and decoder), batch size of 5, and learning rate of 0.0001 for optimization.
-
-- Prior to using the model, the SMILES strings were tokenized and embedded into lists of numbers and then converted to tensors.
-
-- The loss after training epochs was 4.2359 for five SMILES sequences.
-
-##### Third Phase: Spectra Encoder
-
-Following establishing the SMILES autoencoder, we will focus on training a spectra encoder. This encoder aims to generate embeddings from mass spectrometry data that closely correspond to the embeddings created by the SMILES encoder for the same chemical compound. By minimizing the difference in embedding between spectra and SMILES, we enable the SMILES decoder to interpret these spectra-derived embeddings to generate valid SMILES strings, effectively bridging the gap between MS data and molecular identity.
-
-##### Transformer
-
-- Implemented preliminary draft of transformer for spectra embedding in the Transformer.ipynb file. Our next step is to test this with the GRU decoder.
+**Architecture:** Implementation of a bidirectional gated recurrent unit (GRU) AutoEncoder to decode SMILES embeddings to generate canonical SMILES from randomized.
   
-- General architecture is as follows:
-Self-attention with a Multi-head Attention mechanism, a feed forward layer, multiple normalizations layers, a dropout layer for regularization, a positional encoding layer, an output layer
+**GRU:**
+  
+- Offers solution to the vanishing gradient problem in recurrent neural networks where backpropagation causes the gradient to become smaller until it does not update weights significantly, thereby increasing error. 
+  
+- Vanishing gradients make it more difficult for the model to memorize characters farther away in the sequence.
+  
+**Pre-processing:**
+   
+- Filter for SMILES with sequence length of 77 and only eight most frequent characters (C, =, (, ), O, 1, 2, N)
 
-##### Validation
+- Create character to integer dictionary mapping
 
-- After generating compounds, metrics such as molecular weight difference, Tanimoto similarity, and element comparisons will validate the model’s accuracy. These metrics help ensure the generated compounds are structurally plausible and chemically relevant to the input mass spectrometry data.
+- Randomly shuffle SMILES string to generate randomized input
+
+- Convert character strings into list of integers with mapping
+  
+- Apply one-hot encoding on integer lists so that loss metrics are not artificially impacted by magnitude of integer
+  
+**Hyperparameters:**
+   
+- Bidirectional GRU encoder and decoder with 3 layers each
+
+- Hidden dimension size of 512, increased to capture more information from input sequence
+
+- Sequence length of 77
+
+- Input size (number of unique characters including whitespace) of 9
+
+- Softmax activation function
+
+- Cross entropy loss
+
+- Learning rate of 0.0001
+
+- 10 epochs, 500 sequences
+
+- Implemented with PyTorch
+  
+**Training Process:**
+  
+- Successfully learned some patterns including opening and closing parenthesis, characters present in the input, and varying outputs corresponding to the input's length and whitespace.
+
+- Improvements could be made to fix characters appearing after a lot of whitespace and repeating carbons.
+
+## Transformer Model
+
+**Architecture:** Evaluation of a Transformer model for predicting SMILES from GC-MS spectra. 
+
+GC-MS spectra contained 517,627 unique tuples, while the SMILES dataset contained 45 unique characters. The goal is to convert SMILES vocabulary to the larger GC-MS vocabulary.
+  
+**Pre-processing:** 
+  
+- Removed stereochemistry and invalid strings
+
+- Filter for SMILES with sequence length of 77 and pair with GC-MS spectra
+
+- Convert SMILES to DeepSMILES
+
+- Tokenization methods
+
+  - Unique character tokenization and one-hot encoding
+
+  - Four-character substring tokenization involved splitting GC-MS spectra into substrings of mass-to-charge (m/z) ratios. Substrings were mapped to integers and embeddings were generated with one-hot encoding and average pooling to reduce computational demand.
+  
+**Hyperparameters:**
+  
+- Transformer model implemented with PyTorch and adjusted to handle input data
+
+- GC-MS and DeepSMILES data use positional encoding and generate separate embeddings
+
+- Cross-attention mechanism
+
+- Cross entropy loss and Adam optimizer
+
+- Learning rate of 0.001
+
+- 120 epochs, 1500 spectra/ sequence pairs, batch size of 16
+  
+**Training Process:** 
+  
+- Performance issues due to limited computational resources and small training dataset
+
+- Despite cross-attention, model outputs were mostly strings of carbons, reflecting skewed data
+
+- Validation set results included high loss (3.94), low accuracy (12.6%), and a very low F1 score (0.028)
+
+## Hybrid Encoder-Decoder Neural Network
+
+**Architecture:** Maps spectral data to latent representations aligned with chemically meaningful substructures.
+
+**Pre-processing:**
+  
+- SMILES Pair Encoding tokenizes SMILES into high-frequency substructures, simplifying prediction and reducing noise
+
+- Uses Word2Vec embedding for tokenization and transforms MS data into standardized 2D matrix through binning, applying noise filtering, and normalization
+  
+**Hyperparameters:**
+  
+- Encoder combines convolutional and recurrent neural networks (CNNs and LSTMs) to process spectra data
+
+- Decoder generates molecular vector predictions
+
+- Adaptive training strategy with Adam optimizer and early stopping
+
+- Mean squared error loss
+  
+**Training Process:**
+
+- Shows potential for identifying unknown compounds by comparing generated vectors with known molecular structures using similarity metrics like cosine similarity and Euclidean distance
+
+- Generating SMILES directly from predicted molecular vectors proved difficult as precise syntactic information is lost during embedding
+
+- Successfully narrowed down compound candidates and resolved underlying substructural features from MS data
+
+## Post-Prediction Analysis
+
+- **Metrics:** Molecular weight difference and Tanimoto similarity using Morgan fingerprints provided structure-based metrics beyond simple string comparison.
+  
+- Molecular weight captures difference in overall composition accuracy, and Tanimoto similarity measures structural feature preservation. These metrics provide complementary views of prediction quality.
+
+## Discussion
+
+- Metrics suggest that despite the model's low validity rate when comparing SMILES strings, the model can capture both compositional and structural aspects of the target molecules when it produces valid predictions.
+  
+**Challenges:** 
+  
+- Unbalanced dataset where prevalence of carbon chains produced carbon-heavy outputs
+
+- Computational limitations on model performance
+  
+**Future Improvements:** 
+
+- Hyperparameter tuning for learning rate, optimizer choices (e.g., SGD), and model architecture (e.g., number of encoder/decoder layers)
+
+- Increasing computational power and batch size
+
+- Exploring alternative tokenization methods like functional group-based tokenization to capture molecular structure
+
+- Experimenting with tokenization for GC-MS spectra, like binning m/z values or using Spec2Vec for embeddings
