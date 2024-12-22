@@ -2,7 +2,7 @@
 
 ## Objective
 
-This project aims to generate SMILES (Simplified Molecular Input Line Entry System) representations from mass spectrometry (MS) data using machine learning techniques. I primarily contributed to the autoencoder architecture.
+This project aims to generate SMILES (Simplified Molecular Input Line Entry System) representations from mass spectrometry (MS) data using machine learning techniques.
 
 I primarily contributed to the autoencoder architecture in `SMILES_AutoEncoder.ipynb`.
 
